@@ -1,0 +1,16 @@
+#formdiv {
+    float: left;
+    margin-right: 20px;
+}
+
+#output {
+    float: left;
+}
+
+@media print
+{    
+    .no-print, .no-print *
+    {
+        display: none !important;
+    }
+}
