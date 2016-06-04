@@ -25,6 +25,29 @@ Parameter.prototype.integer = function(desc,name,min,max,init,callback) {
     this.values[name] = function() {return sel.value};
 }
 
+Parameter.prototype.select = function(desc,name,opts,init,callback) {
+    var sel = document.createElement('select');
+    var opt;
+    var index = 0;
+    var n = opts.length;
+    for (var i = 0; i < n; i++) {
+	opt = document.createElement('option');
+	opt.value = opts[i];
+	opt.innerHTML = opts[i];
+	sel.appendChild(opt);
+	if (opts[i] == init) {
+	    index = i;
+	}
+    }
+    sel.selectedIndex = index;
+    sel.id = 'parameter_' + name;
+    if (typeof callback === 'function') {
+	sel.addEventListener('change',callback);
+    }
+    this.addRow(desc,sel,'int');
+    this.values[name] = function() {return sel.value};
+}
+
 Parameter.prototype.text = function(desc,name,init,callback) {
     var txt = document.createElement('input');
     txt.type = 'text';
