@@ -1,11 +1,99 @@
 var parameter;
-var px_per_cm;
+var px_per_mm;
+
+var pages = {
+    "A0": [841,1189],
+    "A1": [594,841],
+    "A2": [420,594],
+    "A3": [297,420],
+    "A4": [210,297],
+    "A5": [148,210],
+    "A6": [105,148],
+    "A7": [74,105],
+    "A8": [52,74],
+    "A9": [37,52],
+    "A10": [26,37],
+    "ANSI A": [216,279],
+    "ANSI B": [279,432],
+    "ANSI C": [432,559],
+    "ANSI D": [559,864],
+    "ANSI E": [864,1118],
+    "letter": [216,279],
+    "B0": [1414,1000],
+    "B1": [1000,707],
+    "B2": [707,500],
+    "B3": [500,353],
+    "B4": [353,250],
+    "B5": [250,176],
+    "B6": [176,125],
+    "B7": [125,88],
+    "B8": [88,62],
+    "B9": [62,44],
+    "B10": [44,31],
+    "C0": [1297,917],
+    "C1": [917,648],
+    "C2": [648,458],
+    "C3": [458,324],
+    "C4": [324,229],
+    "C5": [229,162],
+    "C6": [162,114],
+    "C7": [114,81],
+    "C8": [81,57],
+    "C9": [57,40],
+    "C10": [40,28]
+}
+
+var pageNames = [
+    "A0",
+    "A1",
+    "A2",
+    "A3",
+    "A4",
+    "A5",
+    "A6",
+    "A7",
+    "A8",
+    "A9",
+    "A10",
+    "ANSI A",
+    "ANSI B",
+    "ANSI C",
+    "ANSI D",
+    "ANSI E",
+    "letter",
+    "B0",
+    "B1",
+    "B2",
+    "B3",
+    "B4",
+    "B5",
+    "B6",
+    "B7",
+    "B8",
+    "B9",
+    "B10",
+    "C0",
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7",
+    "C8",
+    "C9",
+    "C10"
+]
 
 function init() {
     make_px2cm();
     parameter = new Parameter('paramtbl');
-    parameter.text('Page Width (cm)','w',10,createAxes);
-    parameter.text('Page Height (cm)','h',15,createAxes);
+    parameter.select('Page Size','ps',pageNames,'A4',createAxes);
+    parameter.select('Page Orientation','or',["Portrait","Landscape"],'Portrait',createAxes);
+    parameter.select('N-Up','np',[1,2,4,6,8],1,createAxes);
+    parameter.integer('Font Size','fs',6,24,16,createAxes);
+//    parameter.text('Page Width (cm)','w',10,createAxes);
+//    parameter.text('Page Height (cm)','h',15,createAxes);
     parameter.boolean('Preserve aspect ratio','asp',true,createAxes);
     parameter.boolean('Grid','gd',true,createAxes);
     parameter.separator('X Axis');
@@ -21,14 +109,18 @@ function init() {
     createAxes();
     
     var w = document.getElementById('paramtbl').offsetWidth;
-    console.log(w);
     document.getElementById('expl').style.width = w + 'px';
 }
 
 window.addEventListener('load',init,false);
 
 function createAxes() {
-    var width,
+    var page,
+	orient,
+	nup,
+	nrow,
+	fontsize,
+	width,
 	height,
 	aspect,
 	grid,
@@ -48,10 +140,62 @@ function createAxes() {
 	xborder,
 	yborder
     ;
-    width = cm2px(parameter.getParameter('w'));
-    height = cm2px(parameter.getParameter('h'));
+    page = parameter.getParameter('ps');
+    orient = parameter.getParameter('or');
+    width = Math.floor(mm2px(pages[page][0])) - 10;
+    height = Math.floor(mm2px(pages[page][1])) - 10;
+    if (orient == 'Landscape') {
+	var swap = width;
+	width = height;
+	height = swap;
+    }
+    console.log(width,height);
+    var out = document.getElementById('output');
+    out.innerHTML = '';
+    out.style.height = height;
+    out.style.width = width;
+    out.style.maxHeight = height;
+    out.style.maxWidth = width;
+    nup = parseInt(parameter.getParameter('np'));
+    nrow = 1;
+    if (nup == 2) {
+	if (height > width) {
+	    height /= 2;
+	    nrow = 1;
+	} else {
+	    width /= 2;
+	    nrow = 2;
+	}
+    } else if (nup == 4) {
+	height /= 2;
+	width /= 2;
+	nrow = 2;
+    } else if (nup == 6) {
+	if (height > width) {
+	    height /= 3;
+	    width /= 2;
+	    nrow = 2;
+	} else {
+	    height /= 2;
+	    width /= 3;
+	    nrow = 3;
+	}
+    } else if (nup == 8) {
+	if (height > width) {
+	    height /= 4;
+	    width /= 2;
+	    nrow = 2;
+	} else {
+	    height /= 2;
+	    width /= 4;
+	    nrow = 4;
+	}
+    }
+//    width = cm2px(parameter.getParameter('w'));
+//    height = cm2px(parameter.getParameter('h'));
     aspect = parameter.getParameter('asp');
     gridbl = parameter.getParameter('gd');
+    fontsize = parseInt(parameter.getParameter('fs'));
     xmax = parseFloat(parameter.getParameter('xmx'));
     xmin = parseFloat(parameter.getParameter('xmn'));
     ymax = parseFloat(parameter.getParameter('ymx'));
@@ -65,13 +209,15 @@ function createAxes() {
     xborder = 20;
     yborder = 20;
     if (aspect) {
-	xscale = Math.min((width - 2*xborder)/xwidth,height/ywidth);
+	xscale = Math.min((width - 2*xborder)/xwidth,(height - 2*yborder)/ywidth);
 	yscale = xscale;
-	yborder = xborder;
+	xborder = (width - xscale*xwidth)/2;
+	yborder = (height - yscale*ywidth)/2;
     } else {
 	xscale = (width - 2*xborder)/xwidth;
 	yscale = (height - 2*yborder)/ywidth;
     }
+    
     var transformX = function(x) {
         return (x - xmin)*xscale + xborder;
     };
@@ -85,37 +231,11 @@ function createAxes() {
         return - y*yscale;
     };
     var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute('style', 'border: 1px solid back');
     svg.setAttribute('width', width);
     svg.setAttribute('height', height);
     svg.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
     svg.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", "http://www.w3.org/2000/svg");
-    var arrow = document.createElementNS("http://www.w3.org/2000/svg", 'marker');
-    arrow.setAttribute('id','triangle');
-    arrow.setAttribute('viewBox',"0 0 10 10");
-    arrow.setAttribute('refX',"0");
-    arrow.setAttribute('refY',"5");
-    arrow.setAttribute('markerUnits',"strokeWidth");
-    arrow.setAttribute('markerWidth',"20");
-    arrow.setAttribute('markerHeight',"15");
-    arrow.setAttribute('orient',"auto");
-    var apath = document.createElementNS("http://www.w3.org/2000/svg",'path');
-    apath.setAttribute('d',"M 0 0 L 10 5 L 0 10 z");
-    arrow.appendChild(apath);
-    svg.appendChild(arrow);
-    var dart = document.createElementNS("http://www.w3.org/2000/svg", 'marker');
-    dart.setAttribute('id','dart');
-    dart.setAttribute('viewBox',"0 0 10 10");
-    dart.setAttribute('refX',"0");
-    dart.setAttribute('refY',"5");
-    dart.setAttribute('markerUnits',"strokeWidth");
-    dart.setAttribute('markerWidth',"20");
-    dart.setAttribute('markerHeight',"15");
-    dart.setAttribute('orient',"auto");
-    var dpath = document.createElementNS("http://www.w3.org/2000/svg",'path');
-    dpath.setAttribute('d',"M 0 5 L 3 2 L 10 5 L 3 8 z");
-    dart.appendChild(dpath);
-    svg.appendChild(dart);
+
     var nmin,nmax,notch,i;
     if (gridbl) {
 	var grid = document.createElementNS("http://www.w3.org/2000/svg",'path');
@@ -169,6 +289,7 @@ function createAxes() {
             tick = document.createElementNS("http://www.w3.org/2000/svg",'text');
             tick.setAttribute('x',transformX(i*xlabel));
             tick.setAttribute('y',transformY(-.35));
+	    tick.setAttribute('font-size',fontsize);
             tick.setAttribute('text-anchor','middle');
             tick.setAttribute('style','dominant-baseline: hanging');
             var tlbl = document.createTextNode(i*xlabel);
@@ -194,6 +315,7 @@ function createAxes() {
             tick = document.createElementNS("http://www.w3.org/2000/svg",'text');
             tick.setAttribute('x',transformX(-.35));
             tick.setAttribute('y',transformY(i*ylabel));
+	    tick.setAttribute('font-size',fontsize);
             tick.setAttribute('text-anchor','end');
             tick.setAttribute('style','dominant-baseline: middle');
             var tlbl = document.createTextNode(i*ylabel);
@@ -205,31 +327,28 @@ function createAxes() {
         tick = document.createElementNS("http://www.w3.org/2000/svg",'text');
         tick.setAttribute('x',transformX(-.15));
         tick.setAttribute('y',transformY(-.15));
+	tick.setAttribute('font-size',fontsize);
         tick.setAttribute('text-anchor','end');
         tick.setAttribute('style','dominant-baseline: hanging');
         var tlbl = document.createTextNode("0");
         tick.appendChild(tlbl);
         svg.appendChild(tick);
     }
-    var out = document.getElementById('output');
-    out.innerHTML = '';
-    out.appendChild(svg);
-    var svgtxt = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' + "\n" + '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">' + "\n" + out.innerHTML;
 
-/*    var blob = new Blob([svgtxt], {'type':'text/svg'});
-    var a = document.querySelector('#gdownload');
-    a.href = window.URL.createObjectURL(blob);
-    var fname = document.querySelector('#filename');
-    var filename;
-    if (fname.value == '') {
-        filename = 'sociogram';
-    } else {
-        filename = fname.value;
+    var nsvg,br,tbl,tr,td;
+    tbl = document.createElement('table');
+    tbl.className = 'axesTable';
+    for (i=0; i < nup; i++) {
+	if (i%nrow == 0) {
+	    tr = document.createElement('tr');
+	    tbl.appendChild(tr);
+	}
+	nsvg = svg.cloneNode(true);
+	td = document.createElement('td');
+	td.appendChild(nsvg);
+	tr.appendChild(td);
     }
-    a.download = filename + "Chart.svg";
-    a.style.display = 'inline';
-    a.innerHTML = 'Download the Chart';
-*/
+    out.appendChild(tbl);
 }
 
 function make_px2cm() {
@@ -241,14 +360,22 @@ function make_px2cm() {
     d.style.height = '1000cm';
     d.style.width = '1000cm';
     body.appendChild(d);
-    px_per_cm = d.offsetHeight / 1000;
+    px_per_mm = d.offsetHeight / 10000;
     body.removeChild(d);
 }
 
+function px2mm (px) {
+    return px / px_per_mm;
+}
+
+function mm2px (mm) {
+    return mm * px_per_mm;
+}
+
 function px2cm (px) {
-    return px / px_per_cm;
+    return px / px_per_mm / 10;
 }
 
 function cm2px (cm) {
-    return cm * px_per_cm;
+    return cm * px_per_mm * 10;
 }
