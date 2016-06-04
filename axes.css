@@ -1,10 +1,32 @@
+body {
+    margin: 0px;
+}
+
 #formdiv {
     float: left;
     margin-right: 20px;
+    margin-left: 8px;
+}
+
+.axesTable td {
+    padding: 0px;
+    line-height: 0px;
+}
+
+.axesTable {
+    border-collapse: collapse;
 }
 
 #output {
     float: left;
+}
+
+@media screen {
+    
+    #output {
+/*	float: left; */
+	border: 1px solid;
+    }
 }
 
 @media print
@@ -13,4 +35,15 @@
     {
         display: none !important;
     }
+
+    #output {
+/*	border: 0px; */
+	height: 99%;
+    }
+}
+
+@page
+{
+    size: auto;
+    margin: 0mm;
 }
