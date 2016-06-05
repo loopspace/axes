@@ -112,6 +112,7 @@ function init() {
     parameter = new Parameter('paramtbl');
     parameter.separator('Page Setup');
     parameter.select('Page Size','ps',pageNames,'A4',createAxes);
+    parameter.text('Borders (cm)','bd',1,createAxes);
     parameter.select('Page Orientation','or',["Portrait","Landscape"],'Portrait',createAxes);
     parameter.select('N-Up','np',[1,2,4,6,8],1,
 		     function(e,p) {
@@ -174,6 +175,7 @@ function createAxes(e,p) {
 	orient,
 	nup,
 	nrow,
+	border,
 	fontsize,
 	width,
 	height,
@@ -252,8 +254,9 @@ function createAxes(e,p) {
     xlabel = parseFloat(p.getParameter('xlb'));
     ymark = parseFloat(p.getParameter('ymk'));
     ylabel = parseFloat(p.getParameter('ylb'));
+    border = cm2px(parseFloat(p.getParameter('bd')));
 
-    svgs[caxes] = createAxesSvg(width,height,xmin,xmax,xmark,xlabel,ymin,ymax,ymark,ylabel,aspect,fontsize,gridbl);
+    svgs[caxes] = createAxesSvg(width,height,border,xmin,xmax,xmark,xlabel,ymin,ymax,ymark,ylabel,aspect,fontsize,gridbl);
     axParams[caxes] = {
 	"fs": fontsize,
 	"asp": aspect,
@@ -272,7 +275,7 @@ function createAxes(e,p) {
     tbl.className = 'axesTable';
     for (var i=0; i < naxes; i++) {
 	if (!svgs[i]) {
-	    svgs[i] = createAxesSvg(width,height,defaults.xmn,defaults.xmx,defaults.xmk,defaults.xlb,defaults.ymn,defaults.ymx,defaults.ymk,defaults.ylb,defaults.asp,defaults.fs,defaults.gd);
+	    svgs[i] = createAxesSvg(width,height,border,defaults.xmn,defaults.xmx,defaults.xmk,defaults.xlb,defaults.ymn,defaults.ymx,defaults.ymk,defaults.ylb,defaults.asp,defaults.fs,defaults.gd);
 	}
     }
     for (var i=0; i < nup; i++) {
@@ -288,7 +291,7 @@ function createAxes(e,p) {
     out.appendChild(tbl);
 }
 
-function createAxesSvg (width,height,xmin,xmax,xmark,xlabel,ymin,ymax,ymark,ylabel,aspect,fontsize,gridbl) {
+function createAxesSvg (width,height,border,xmin,xmax,xmark,xlabel,ymin,ymax,ymark,ylabel,aspect,fontsize,gridbl) {
     var	xwidth,
 	ywidth,
     	xscale,
@@ -303,8 +306,8 @@ function createAxesSvg (width,height,xmin,xmax,xmark,xlabel,ymin,ymax,ymark,ylab
 
     xwidth = xmax - xmin;
     ywidth = ymax - ymin;
-    xborder = 20;
-    yborder = 20;
+    xborder = border;
+    yborder = border;
     if (aspect) {
 	xscale = Math.min((width - 2*xborder)/xwidth,(height - 2*yborder)/ywidth);
 	yscale = xscale;
