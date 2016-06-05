@@ -1,9 +1,12 @@
 var Parameter = function(id) {
     this.formtbl = document.getElementById(id);
-    this.values = {};
+    this.getValues = {};
+    this.setValues = {};
+    this.elements = {};
 }
 
 Parameter.prototype.integer = function(desc,name,min,max,init,callback) {
+    var self = this;
     var sel = document.createElement('select');
     var opt;
     var index = 0;
@@ -19,13 +22,27 @@ Parameter.prototype.integer = function(desc,name,min,max,init,callback) {
     sel.selectedIndex = index;
     sel.id = 'parameter_' + name;
     if (typeof callback === 'function') {
-	sel.addEventListener('change',callback);
+	sel.addEventListener('change',function(e) {return callback(e,self) });
     }
     this.addRow(desc,sel,'int');
-    this.values[name] = function() {return sel.value};
+    this.getValues[name] = function() {return sel.value};
+    this.setValues[name] = function(v) {
+	var index = 0;
+//	v = toString(v);
+	for (var i = 0; i < sel.children.length; i++) {
+	    if (sel.children[i].value == v) {
+		index = i;
+		break;
+	    }
+	}
+	sel.selectedIndex = index;
+    };
+    this.elements[name] = sel;
+    return sel;
 }
 
 Parameter.prototype.select = function(desc,name,opts,init,callback) {
+    var self = this;
     var sel = document.createElement('select');
     var opt;
     var index = 0;
@@ -42,47 +59,97 @@ Parameter.prototype.select = function(desc,name,opts,init,callback) {
     sel.selectedIndex = index;
     sel.id = 'parameter_' + name;
     if (typeof callback === 'function') {
-	sel.addEventListener('change',callback);
+	sel.addEventListener('change',function(e) {return callback(e,self) });
     }
     this.addRow(desc,sel,'int');
-    this.values[name] = function() {return sel.value};
+    this.getValues[name] = function() {return sel.value};
+    this.setValues[name] = function(v) {
+	var index = 0;
+	for (var i = 0; i < sel.children.length; i++) {
+	    if (sel.children[i].value == v) {
+		index = i;
+		break;
+	    }
+	}
+	sel.selectedIndex = index;
+    };
+    this.elements[name] = sel;
+    return sel;
+}
+
+Parameter.prototype.enableOptions = function(sel,opts,val) {
+    if (typeof(sel) == "string") {
+	sel = this.elements[sel];
+    }
+    var allopts = sel.children;
+    for (var i = 0; i < allopts.length; i++) {
+	if (val) {
+	    if (opts.indexOf(allopts[i].value) != -1) {
+		allopts[i].disabled = false
+	    } else {
+		allopts[i].disabled = true
+	    }
+	} else {
+	    if (opts.indexOf(i) != -1) {
+		allopts[i].disabled = false
+	    } else {
+		allopts[i].disabled = true
+	    }
+	}
+    }
 }
 
 Parameter.prototype.text = function(desc,name,init,callback) {
+    var self = this;
     var txt = document.createElement('input');
     txt.type = 'text';
     txt.value = init;
     txt.id = 'parameter_' + name;
     if (typeof callback === 'function') {
-	txt.addEventListener('change',callback);
+	txt.addEventListener('change',function(e) {return callback(e,self) });
     }
     this.addRow(desc,txt,'text');
-    this.values[name] = function() {return txt.value};
+    this.getValues[name] = function() {return txt.value};
+    this.setValues[name] = function(v) {
+	txt.value = v;
+    };
+    this.elements[name] = txt;
+    return txt;
 }
 
 Parameter.prototype.boolean = function(desc,name,init,callback) {
+    var self = this;
     var cbx = document.createElement('input');
     cbx.type = 'checkbox';
     cbx.checked = init;
     cbx.id = 'parameter_' + name;
     if (typeof callback === 'function') {
-	cbx.addEventListener('change',callback);
+	cbx.addEventListener('change',function(e) {return callback(e,self) });
     }
     this.addRow(desc,cbx,'bool');
-    this.values[name] = function() {return cbx.checked};
+    this.getValues[name] = function() {return cbx.checked};
+    this.setValues[name] = function(v) {
+	cbx.checked = v;
+    };
+    this.elements[name] = cbx;
+    return cbx;
 }
 
 Parameter.prototype.action = function(desc,callback) {
+    var self = this;
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.innerHTML = desc;
     if (typeof callback === 'function') {
-	btn.addEventListener('click',callback);
+	btn.addEventListener('click',function(e) {return callback(e,self) });
     }
     this.addRow('',btn,'action');
+    this.elements[name] = btn;
+    return btn;
 }
 
 Parameter.prototype.number = function(desc,name,min,max,init,callback) {
+    var self = this;
     var dv = document.createElement('div');
     dv.id = 'parameter_' + name;
     var sp = document.createElement('span');
@@ -104,20 +171,26 @@ Parameter.prototype.number = function(desc,name,min,max,init,callback) {
 	    var w = dv.offsetWidth - 2;
 	    var t = Math.min(w,Math.max(0,e.pageX - dv.offsetLeft));
 	    sp.style.marginLeft = t + 'px';
-	    callback();
+	    callback(e,self);
 	}
     };
     dv.addEventListener('mousedown',function(e) {moving = true; fn(e);});
     dv.addEventListener('mouseup',function() {moving = false;});
     dv.addEventListener('mousemove',fn);
     this.addRow(desc,dv,'slider');
-    this.values[name] = function() {
+    this.getValues[name] = function() {
 	var style = sp.currentStyle || window.getComputedStyle(sp);
 	var p = style.marginLeft.replace(/[^\d\.\-]/g,'');
 	var w = dv.offsetWidth - 2;
 	var t = p/w*(max - min) + min; 
 	return t;
     };
+    this.setValues[name] = function(v) {
+	var p = (v - min)/(max - min)*100;
+	sp.style.marginLeft = p + '%';
+    };
+    this.elements[name] = dv;
+    return dv;
 }
 
 Parameter.prototype.separator = function(desc) {
@@ -139,6 +212,10 @@ Parameter.prototype.addRow = function(lbl,elt,cls) {
     this.formtbl.appendChild(row);
 }
 
+Parameter.prototype.setParameter = function(n,v) {
+    this.setValues[n](v);
+}
+
 Parameter.prototype.getParameter = function(n) {
-    return this.values[n]();
+    return this.getValues[n]();
 }
