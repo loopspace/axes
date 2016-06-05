@@ -21,6 +21,10 @@ body {
     float: left;
 }
 
+.paramRow.sep {
+    font-weight: bold;
+}
+
 @media screen {
     
     #output {
