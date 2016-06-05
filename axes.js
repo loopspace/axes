@@ -1,5 +1,25 @@
-var parameter;
+"use strict";
+
 var px_per_mm;
+var svgs = [];
+var axParams = [];
+var caxes = 0;
+var defaults = {
+    "fs": 16,
+    "asp": true,
+    "gd": true,
+    "xmn": -5,
+    "xmx": 5,
+    "xmk": 1,
+    "xlb": 1,
+    "ymn": -7,
+    "ymx": 8,
+    "ymk": 1,
+    "ylb": 1
+};
+var paramNames = [
+    "fs","asp","gd","xmn","xmx","xmk","xlb","ymn","ymx","ymk","ylb"
+]
 
 var pages = {
     "A0": [841,1189],
@@ -86,27 +106,60 @@ var pageNames = [
 ]
 
 function init() {
+    var parameter;
+    
     make_px2cm();
     parameter = new Parameter('paramtbl');
+    parameter.separator('Page Setup');
     parameter.select('Page Size','ps',pageNames,'A4',createAxes);
     parameter.select('Page Orientation','or',["Portrait","Landscape"],'Portrait',createAxes);
-    parameter.select('N-Up','np',[1,2,4,6,8],1,createAxes);
+    parameter.select('N-Up','np',[1,2,4,6,8],1,
+		     function(e,p) {
+			 var a = [];
+			 for (var i = 0; i < e.target.value; i++) {
+			     a.push(i);
+			 }
+			 parameter.enableOptions('na',a,false);
+			 return createAxes(e,p);
+		     });
+    parameter.integer('Number of Axes','na',1,8,1,
+		      function(e,p) {
+			  var a = [];
+			  for (var i = 0; i < e.target.value; i++) {
+			      a.push(i);
+			  }
+			  parameter.enableOptions('ca',a,false);
+			  return createAxes(e,p);
+		      });
+    parameter.integer('Current Axes','ca',1,8,1,function(e,p) {
+	var opts;
+	var ca = e.target.value - 1;
+	if (axParams[ca]) {
+	    opts = axParams[ca];
+	} else {
+	    opts = defaults;
+	}
+	for (var i = 0; i < paramNames.length; i++) {
+	    p.setParameter(paramNames[i],opts[paramNames[i]]);
+	}
+    });
+    parameter.enableOptions('na',[0],false);
+    parameter.enableOptions('ca',[0],false);
+    parameter.separator('Axes Setup');
     parameter.integer('Font Size','fs',6,24,16,createAxes);
-//    parameter.text('Page Width (cm)','w',10,createAxes);
-//    parameter.text('Page Height (cm)','h',15,createAxes);
     parameter.boolean('Preserve aspect ratio','asp',true,createAxes);
     parameter.boolean('Grid','gd',true,createAxes);
     parameter.separator('X Axis');
-    parameter.text('Maximum','xmx',5,createAxes);
     parameter.text('Minimum','xmn',-5,createAxes);
+    parameter.text('Maximum','xmx',5,createAxes);
     parameter.text('Marks every','xmk',1,createAxes);
     parameter.text('Labels every','xlb',1,createAxes);
     parameter.separator('Y Axis');
-    parameter.text('Maximum','ymx',8,createAxes);
     parameter.text('Minimum','ymn',-7,createAxes);
+    parameter.text('Maximum','ymx',8,createAxes);
     parameter.text('Marks every','ymk',1,createAxes);
     parameter.text('Labels every','ylb',1,createAxes);
-    createAxes();
+    createAxes(null,parameter);
     
     var w = document.getElementById('paramtbl').offsetWidth;
     document.getElementById('expl').style.width = w + 'px';
@@ -114,8 +167,10 @@ function init() {
 
 window.addEventListener('load',init,false);
 
-function createAxes() {
+function createAxes(e,p) {
     var page,
+	naxes,
+	caxes,
 	orient,
 	nup,
 	nrow,
@@ -129,19 +184,15 @@ function createAxes() {
 	xmin,
 	ymax,
 	ymin,
-	xwidth,
-	ywidth,
-	xscale,
-	yscale,
 	xmark,
 	xlabel,
 	ymark,
-	ylabel,
-	xborder,
-	yborder
+	ylabel
     ;
-    page = parameter.getParameter('ps');
-    orient = parameter.getParameter('or');
+    page = p.getParameter('ps');
+    nup = parseInt(p.getParameter('np'));
+    orient = p.getParameter('or');
+    aspect = p.getParameter('asp');
     width = Math.floor(mm2px(pages[page][0])) - 10;
     height = Math.floor(mm2px(pages[page][1])) - 10;
     if (orient == 'Landscape') {
@@ -149,14 +200,12 @@ function createAxes() {
 	width = height;
 	height = swap;
     }
-    console.log(width,height);
     var out = document.getElementById('output');
     out.innerHTML = '';
     out.style.height = height;
     out.style.width = width;
     out.style.maxHeight = height;
     out.style.maxWidth = width;
-    nup = parseInt(parameter.getParameter('np'));
     nrow = 1;
     if (nup == 2) {
 	if (height > width) {
@@ -177,7 +226,7 @@ function createAxes() {
 	    nrow = 2;
 	} else {
 	    height /= 2;
-	    width /= 3;
+	    width /= 3;p
 	    nrow = 3;
 	}
     } else if (nup == 8) {
@@ -191,19 +240,67 @@ function createAxes() {
 	    nrow = 4;
 	}
     }
-//    width = cm2px(parameter.getParameter('w'));
-//    height = cm2px(parameter.getParameter('h'));
-    aspect = parameter.getParameter('asp');
-    gridbl = parameter.getParameter('gd');
-    fontsize = parseInt(parameter.getParameter('fs'));
-    xmax = parseFloat(parameter.getParameter('xmx'));
-    xmin = parseFloat(parameter.getParameter('xmn'));
-    ymax = parseFloat(parameter.getParameter('ymx'));
-    ymin = parseFloat(parameter.getParameter('ymn'));
-    xmark = parseFloat(parameter.getParameter('xmk'));
-    xlabel = parseFloat(parameter.getParameter('xlb'));
-    ymark = parseFloat(parameter.getParameter('ymk'));
-    ylabel = parseFloat(parameter.getParameter('ylb'));
+    naxes = parseInt(p.getParameter('na'));
+    caxes = parseInt(p.getParameter('ca')) - 1;
+    gridbl = p.getParameter('gd');
+    fontsize = parseInt(p.getParameter('fs'));
+    xmax = parseFloat(p.getParameter('xmx'));
+    xmin = parseFloat(p.getParameter('xmn'));
+    ymax = parseFloat(p.getParameter('ymx'));
+    ymin = parseFloat(p.getParameter('ymn'));
+    xmark = parseFloat(p.getParameter('xmk'));
+    xlabel = parseFloat(p.getParameter('xlb'));
+    ymark = parseFloat(p.getParameter('ymk'));
+    ylabel = parseFloat(p.getParameter('ylb'));
+
+    svgs[caxes] = createAxesSvg(width,height,xmin,xmax,xmark,xlabel,ymin,ymax,ymark,ylabel,aspect,fontsize,gridbl);
+    axParams[caxes] = {
+	"fs": fontsize,
+	"asp": aspect,
+	"gd": gridbl,
+	"xmn": xmin,
+	"xmx": xmax,
+	"xmk": xmark,
+	"xlb": xlabel,
+	"ymn": ymin,
+	"ymx": ymax,
+	"ymk": ymark,
+	"ylb": ylabel
+    }
+    var nsvg,br,tbl,tr,td;
+    tbl = document.createElement('table');
+    tbl.className = 'axesTable';
+    for (var i=0; i < naxes; i++) {
+	if (!svgs[i]) {
+	    svgs[i] = createAxesSvg(width,height,defaults.xmn,defaults.xmx,defaults.xmk,defaults.xlb,defaults.ymn,defaults.ymx,defaults.ymk,defaults.ylb,defaults.asp,defaults.fs,defaults.gd);
+	}
+    }
+    for (var i=0; i < nup; i++) {
+	if (i%nrow == 0) {
+	    tr = document.createElement('tr');
+	    tbl.appendChild(tr);
+	}
+	td = document.createElement('td');
+	nsvg = svgs[i%naxes].cloneNode(true);
+	td.appendChild(nsvg);
+	tr.appendChild(td);
+    }
+    out.appendChild(tbl);
+}
+
+function createAxesSvg (width,height,xmin,xmax,xmark,xlabel,ymin,ymax,ymark,ylabel,aspect,fontsize,gridbl) {
+    var	xwidth,
+	ywidth,
+    	xscale,
+	yscale,
+	xmark,
+	xlabel,
+	ymark,
+	ylabel,
+	xborder,
+	yborder
+    ;
+
     xwidth = xmax - xmin;
     ywidth = ymax - ymin;
     xborder = 20;
@@ -334,21 +431,7 @@ function createAxes() {
         tick.appendChild(tlbl);
         svg.appendChild(tick);
     }
-
-    var nsvg,br,tbl,tr,td;
-    tbl = document.createElement('table');
-    tbl.className = 'axesTable';
-    for (i=0; i < nup; i++) {
-	if (i%nrow == 0) {
-	    tr = document.createElement('tr');
-	    tbl.appendChild(tr);
-	}
-	nsvg = svg.cloneNode(true);
-	td = document.createElement('td');
-	td.appendChild(nsvg);
-	tr.appendChild(td);
-    }
-    out.appendChild(tbl);
+    return svg;
 }
 
 function make_px2cm() {
