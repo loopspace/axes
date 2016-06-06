@@ -44,11 +44,98 @@
       </marker>
     </svg>
     <div id="formdiv" class="no-print">
-      <p id="expl">
-	Configure your axes here.
-	To print the axes, just print the page; the parameters won't
-	appear.
-      </p>
+      <div id="expl">
+	<p>
+	  Configure your axes here.
+	  Click <a href="#" id="helplink">help</a> to
+	  unhide/hide the help text.
+	</p>
+      </div>
+      <div id="help" class="no-print help">
+	<h3>Help</h3>
+	<p>
+	  This website helps you make sets of axes that you can print
+	  and use.
+	  You can configure various aspects of the axes, as explained below.
+	  When you print the page, you should only get the axes.
+	  The configuration pane, and this help panel, will not be
+	  printed.
+	  The axes themselves are created as SVGs so alternatively you
+	  could download the SVGs and import them into a program that
+	  understands SVG.
+	</p>
+
+	  <h4>Page Setup</h4>
+	  <ul>
+	    <li><span class="desc">Page Size</span>: The idea is that
+	    the axes fit on a page of this size so that you can print
+	      them to the size you want, but ...
+	    <li><span class="desc">Page Margins</span>: ... it is
+	    quite hard to figure out the relationship between how big
+	    something is on the screen and whether it will print all
+	    on one page (and it appears to be very dependent on the
+	    browser).  The "page margins" are subtracted from the page
+	    height and width so that if the axes appear on more than
+	    one page then you can shrink them slightly to get them on
+	    a single page.  This can be an iterative process, so use
+	    "Print Preview" or "View as PDF" options in the print
+	    dialogue to check before printing.  The units are pixels,
+	    which are quite small.  In my experiments, with A4 paper,
+	    I found that 5 worked with Firefox while the margin needed
+	      to be 36 for Chrome.
+	    <li><span class="desc">Borders</span>: This is the space
+	    around each set of axes.  If you cut out the axes, this
+	      should be the space left around each one.
+	    <li><span class="desc">Page Orientation</span>: Whether
+	      the page should be portrait or landscape.
+	    <li><span class="desc">N-Up</span>: How many sets of axes to
+	      display on the page.
+	    <li><span class="desc">Number of Axes</span>: How many
+	    distinct sets of axes to display on the page.  If this is
+	    less than the number of sets of axes to display, the set
+	      will repeat as needed.<br>
+	      So to get 2 copies of the same axes, set "N-Up" to 2 and
+	    "Number of Axes" to 1.  To get 2 sets of axes, but each
+	    appearing twice, set "N-Up" to 4 and "Number of Axes" to
+	      2.
+	    <li><span class="desc">Current Axes</span>: The rest of
+	    the options apply to a specific set of axes.  This option
+	      controls which set of axes the displayed options apply to.
+	  </ul>
+
+	  <h4>Axes Setup</h4>
+	  <ul>
+	    <li><span class="desc">Font Size</span>: This is the font
+	      size for the labels on the axes.
+	    <li><span class="desc">Preserve aspect ratio</span>: If
+	    this is checked then the two axes have the same scale.  If
+	    not, they are scaled independently to best fit the
+	      available space.
+	    <li><span class="desc">Grid</span>: If this is checked
+	      then a grid is shown.
+	  </ul>
+
+	  <h4>X/Y Axis</h4>
+	  <ul>
+	    <li><span class="desc">Minimum</span>: The minimum value
+	    on the relevant axis.
+	    <li><span class="desc">Maximum</span>: The maximum value
+	      on the relevant axis.
+	    <li><span class="desc">Marks every</span>: How often to
+	      put marks (counting outwards from 0).
+	    <li><span class="desc">Labels every</span>: How often to
+	      put labels (counting outwards from 0).
+	  </ul>
+	<p>
+	  Lastly, a note on copyright.
+	  As <em>you</em> create the axes, <em>you</em> have the
+	  copyright on them.
+	  I have the copyright on the code, but it is released under
+	  the MIT Licence so if you want to improve it, feel free.
+	  It is
+	  available <a href="https://github.com/loopspace/axes">on github</a>.
+	</p>
+      </div>
       <form id="axes" class="no-print">
 	<table id="paramtbl">
 	</table>
