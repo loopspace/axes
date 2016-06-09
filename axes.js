@@ -9,17 +9,21 @@ var defaults = {
     "asp": true,
     "gd": true,
     "lw": 1,
+    "mw": 1,
+    "ml": 1,
     "xmn": -5,
     "xmx": 5,
     "xmk": 1,
     "xlb": 1,
+    "xal": "_x_",
     "ymn": -7,
     "ymx": 8,
     "ymk": 1,
-    "ylb": 1
+    "ylb": 1,
+    "yal": "_y_",
 };
 var paramNames = [
-    "fs","asp","gd","lw","xmn","xmx","xmk","xlb","ymn","ymx","ymk","ylb"
+    "fs","asp","gd","lw","mw","ml","xmn","xmx","xmk","xlb","xal","ymn","ymx","ymk","ylb","yal"
 ]
 
 var pages = {
@@ -153,16 +157,20 @@ function init() {
     parameter.boolean('Preserve aspect ratio','asp',true,createAxes);
     parameter.boolean('Grid','gd',true,createAxes);
     parameter.number('Line Width','lw',0,5,1,createAxes);
+    parameter.number('Mark Length','ml',0,20,10,createAxes);
+    parameter.number('Mark Width','mw',0,5,1,createAxes);
     parameter.separator('X Axis');
     parameter.text('Minimum','xmn',-5,createAxes);
     parameter.text('Maximum','xmx',5,createAxes);
     parameter.text('Marks every','xmk',1,createAxes);
-    parameter.text('Labels every','xlb',1,createAxes);
+    parameter.integer('Labels every','xlb',1,5,1,createAxes);
+    parameter.text('Axis label','xal',"_x_",createAxes);
     parameter.separator('Y Axis');
     parameter.text('Minimum','ymn',-7,createAxes);
     parameter.text('Maximum','ymx',8,createAxes);
     parameter.text('Marks every','ymk',1,createAxes);
-    parameter.text('Labels every','ylb',1,createAxes);
+    parameter.integer('Labels every','ylb',1,5,1,createAxes);
+    parameter.text('Axis label','yal',"_y_",createAxes);
     createAxes(null,parameter);
     
     var w = document.getElementById('paramtbl').offsetWidth;
@@ -197,6 +205,8 @@ function createAxes(e,p) {
 	border,
 	fontsize,
 	linewidth,
+	markwidth,
+	marklength,
 	width,
 	height,
 	aspect,
@@ -208,8 +218,10 @@ function createAxes(e,p) {
 	ymin,
 	xmark,
 	xlabel,
+	xaxlabel,
 	ymark,
-	ylabel
+	ylabel,
+	yaxlabel
     ;
     page = p.getParameter('ps');
     nup = parseInt(p.getParameter('np'));
@@ -270,36 +282,85 @@ function createAxes(e,p) {
     gridbl = p.getParameter('gd');
     fontsize = parseInt(p.getParameter('fs'));
     linewidth = parseFloat(p.getParameter('lw'));
+    marklength = parseFloat(p.getParameter('ml'));
+    markwidth = parseFloat(p.getParameter('mw'));
     xmax = parseFloat(p.getParameter('xmx'));
     xmin = parseFloat(p.getParameter('xmn'));
     ymax = parseFloat(p.getParameter('ymx'));
     ymin = parseFloat(p.getParameter('ymn'));
     xmark = parseFloat(p.getParameter('xmk'));
-    xlabel = parseFloat(p.getParameter('xlb'));
+    xlabel = parseInt(p.getParameter('xlb'));
+    xaxlabel = p.getParameter('xal');
     ymark = parseFloat(p.getParameter('ymk'));
-    ylabel = parseFloat(p.getParameter('ylb'));
+    ylabel = parseInt(p.getParameter('ylb'));
+    yaxlabel = p.getParameter('yal');
     border = cm2px(parseFloat(p.getParameter('bd')));
 
-    svgs[caxes] = createAxesSvg(width,height,border,xmin,xmax,xmark,xlabel,ymin,ymax,ymark,ylabel,aspect,fontsize,linewidth,gridbl);
+    svgs[caxes] = createAxesSvg(
+	width,
+	height,
+	border,
+	xmin,
+	xmax,
+	xmark,
+	xlabel,
+	xaxlabel,
+	ymin,
+	ymax,
+	ymark,
+	ylabel,
+	yaxlabel,
+	aspect,
+	fontsize,
+	linewidth,
+	gridbl,
+	markwidth,
+	marklength
+    );
     axParams[caxes] = {
 	"fs": fontsize,
+	"lw": linewidth,
+	"ml": marklength,
+	"mw": markwidth,
 	"asp": aspect,
 	"gd": gridbl,
 	"xmn": xmin,
 	"xmx": xmax,
 	"xmk": xmark,
 	"xlb": xlabel,
+	"xal": xaxlabel,
 	"ymn": ymin,
 	"ymx": ymax,
 	"ymk": ymark,
-	"ylb": ylabel
+	"ylb": ylabel,
+	"yal": yaxlabel
     }
     var nsvg,br,tbl,tr,td;
     tbl = document.createElement('table');
     tbl.className = 'axesTable';
     for (var i=0; i < naxes; i++) {
 	if (!svgs[i]) {
-	    svgs[i] = createAxesSvg(width,height,border,defaults.xmn,defaults.xmx,defaults.xmk,defaults.xlb,defaults.ymn,defaults.ymx,defaults.ymk,defaults.ylb,defaults.asp,defaults.fs,defaults.lw,defaults.gd);
+	    svgs[i] = createAxesSvg(
+		width,
+		height,
+		border,
+		defaults.xmn,
+		defaults.xmx,
+		defaults.xmk,
+		defaults.xlb,
+		defaults.xal,
+		defaults.ymn,
+		defaults.ymx,
+		defaults.ymk,
+		defaults.ylb,
+		defaults.yal,
+		defaults.asp,
+		defaults.fs,
+		defaults.lw,
+		defaults.gd,
+		defaults.mw,
+		defaults.ml
+	    );
 	}
     }
     for (var i=0; i < nup; i++) {
@@ -315,7 +376,27 @@ function createAxes(e,p) {
     out.appendChild(tbl);
 }
 
-function createAxesSvg (width,height,border,xmin,xmax,xmark,xlabel,ymin,ymax,ymark,ylabel,aspect,fontsize,linewidth,gridbl) {
+function createAxesSvg (
+    width,
+    height,
+    border,
+    xmin,
+    xmax,
+    xmark,
+    xlabel,
+    xaxlabel,
+    ymin,
+    ymax,
+    ymark,
+    ylabel,
+    yaxlabel,
+    aspect,
+    fontsize,
+    linewidth,
+    gridbl,
+    markwidth,
+    marklength
+) {
     var	xwidth,
 	ywidth,
     	xscale,
@@ -397,57 +478,81 @@ function createAxesSvg (width,height,border,xmin,xmax,xmark,xlabel,ymin,ymax,yma
     var tick,tlbl;
     nmin = Math.ceil(xmin/xmark);
     nmax = Math.floor(xmax/xmark);
-    var dy = 5*linewidth + .5*fontsize;
-    var dx = -5*linewidth - .5*fontsize;
     for ( i=nmin;i<=nmax;i++) {
 	if (i != 0) {
 	    notch = document.createElementNS("http://www.w3.org/2000/svg",'path');
-            notch.setAttribute('d','M ' + transformX(i*xmark) + ' ' + transformY(0) + ' l 0 ' + dy );//transformDY(-.3));
+            notch.setAttribute('d','M ' + transformX(i*xmark) + ' ' + transformY(0) + ' l 0 ' + marklength );
             notch.setAttribute('stroke','black');
-            notch.setAttribute('stroke-width', linewidth);
+            notch.setAttribute('stroke-width', markwidth);
             svg.appendChild(notch);
 	}
     }
+    xlabel *= xmark;
     nmin = Math.ceil(xmin/xlabel);
     nmax = Math.floor(xmax/xlabel);
     for ( i=nmin;i<=nmax;i++) {
 	if (i != 0) {
             tick = document.createElementNS("http://www.w3.org/2000/svg",'text');
             tick.setAttribute('x',transformX(i*xlabel));
-            tick.setAttribute('y',transformY(0) + dy);
+            tick.setAttribute('y',transformY(0) + marklength);
 	    tick.setAttribute('font-size',fontsize);
             tick.setAttribute('text-anchor','end');
             tick.setAttribute('style','dominant-baseline: hanging');
-            var tlbl = document.createTextNode(i*xlabel);
+            tlbl = document.createTextNode(i*xlabel);
             tick.appendChild(tlbl);
             svg.appendChild(tick);
 	}
+    }
+    var alabel, alabeltxt;
+    // TODO: parse xaxlabel for formatting a la Markdown
+    if (xaxlabel != '') {
+	alabel = document.createElementNS("http://www.w3.org/2000/svg",'text');
+        alabel.setAttribute('x',transformX(xmax) + 15*linewidth);
+        alabel.setAttribute('y',transformY(0));
+	alabel.setAttribute('font-size',fontsize);
+        alabel.setAttribute('text-anchor','start');
+        alabel.setAttribute('style','dominant-baseline: hanging');
+        alabeltxt = document.createTextNode(xaxlabel);
+        alabel.appendChild(alabeltxt);
+        svg.appendChild(alabel);
     }
     nmin = Math.ceil(ymin/ymark);
     nmax = Math.floor(ymax/ymark);
     for ( i=nmin;i<=nmax;i++) {
 	if (i != 0) {
 	    notch = document.createElementNS("http://www.w3.org/2000/svg",'path');
-            notch.setAttribute('d','M ' + transformX(0) + ' ' + transformY(i*ymark) + ' l ' +  dx + ' 0');
+            notch.setAttribute('d','M ' + transformX(0) + ' ' + transformY(i*ymark) + ' l ' +  -marklength + ' 0');
             notch.setAttribute('stroke','black');
-            notch.setAttribute('stroke-width', linewidth);
+            notch.setAttribute('stroke-width', markwidth);
             svg.appendChild(notch);
 	}
     }
+    ylabel *= ymark;
     nmin = Math.ceil(ymin/ylabel);
     nmax = Math.floor(ymax/ylabel);
     for ( i=nmin;i<=nmax;i++) {
 	if (i != 0) {
             tick = document.createElementNS("http://www.w3.org/2000/svg",'text');
-            tick.setAttribute('x',transformX(0) + dx);
+            tick.setAttribute('x',transformX(0) - marklength);
             tick.setAttribute('y',transformY(i*ylabel) - fontsize/8);
 	    tick.setAttribute('font-size',fontsize);
             tick.setAttribute('text-anchor','end');
             tick.setAttribute('style','dominant-baseline: alphabetic');
-            var tlbl = document.createTextNode(i*ylabel);
+            tlbl = document.createTextNode(i*ylabel);
             tick.appendChild(tlbl);
             svg.appendChild(tick);
 	}
+    }
+    if (yaxlabel != '') {
+	alabel = document.createElementNS("http://www.w3.org/2000/svg",'text');
+        alabel.setAttribute('x',transformX(0));
+        alabel.setAttribute('y',transformY(ymax) - 15*linewidth);
+	alabel.setAttribute('font-size',fontsize);
+        alabel.setAttribute('text-anchor','start');
+        alabel.setAttribute('style','dominant-baseline: alphabetic');
+        alabeltxt = document.createTextNode(yaxlabel);
+        alabel.appendChild(alabeltxt);
+        svg.appendChild(alabel);
     }
     if ((ymin < 0 && ymax > 0) || (xmin < 0 && xmax > 0)) {
         tick = document.createElementNS("http://www.w3.org/2000/svg",'text');
@@ -456,7 +561,7 @@ function createAxesSvg (width,height,border,xmin,xmax,xmark,xlabel,ymin,ymax,yma
 	tick.setAttribute('font-size',fontsize);
         tick.setAttribute('text-anchor','end');
         tick.setAttribute('style','dominant-baseline: hanging');
-        var tlbl = document.createTextNode("0");
+        tlbl = document.createTextNode("0");
         tick.appendChild(tlbl);
         svg.appendChild(tick);
     }
