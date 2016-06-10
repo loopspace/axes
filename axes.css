@@ -106,3 +106,11 @@ div.sliderBg {
     height: 50%;
     overflow: visible;
 }
+
+tspan.italic {
+    font-style: italic;
+}
+
+tspan.bold {
+    font-weight: bold;
+}

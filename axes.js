@@ -503,7 +503,7 @@ function createAxesSvg (
             svg.appendChild(tick);
 	}
     }
-    var alabel, alabeltxt;
+    var alabel, alabeltxt, alabeltsp, alabelarr, alabelret;
     // TODO: parse xaxlabel for formatting a la Markdown
     if (xaxlabel != '') {
 	alabel = document.createElementNS("http://www.w3.org/2000/svg",'text');
@@ -512,8 +512,29 @@ function createAxesSvg (
 	alabel.setAttribute('font-size',fontsize);
         alabel.setAttribute('text-anchor','start');
         alabel.setAttribute('style','dominant-baseline: hanging');
-        alabeltxt = document.createTextNode(xaxlabel);
-        alabel.appendChild(alabeltxt);
+	alabelarr = xaxlabel.split(/ +/);
+	for (i = 0; i < alabelarr.length; i++) {
+	    if (i > 0) {
+		alabeltsp = document.createElementNS("http://www.w3.org/2000/svg",'tspan');
+		alabeltxt = document.createTextNode(' ');
+		alabeltsp.appendChild(alabeltxt);
+		alabel.appendChild(alabeltsp);
+	    }
+	    alabeltsp = document.createElementNS("http://www.w3.org/2000/svg",'tspan');
+	    alabelret = getFormat(alabelarr[i]);
+	    if (alabelret[1]) {
+		alabeltsp.setAttribute('class',alabelret[1]);
+		alabelarr[i] = alabelret[0];
+	    }
+	    alabelret = getFormat(alabelarr[i]);
+	    if (alabelret[1]) {
+		alabeltsp.setAttribute('class',alabeltsp.getAttribute('class') + ' ' + alabelret[1]);
+		alabelarr[i] = alabelret[0];
+	    }
+	    alabeltxt = document.createTextNode(alabelarr[i]);
+	    alabeltsp.appendChild(alabeltxt);
+            alabel.appendChild(alabeltsp);
+	}
         svg.appendChild(alabel);
     }
     nmin = Math.ceil(ymin/ymark);
@@ -550,9 +571,32 @@ function createAxesSvg (
 	alabel.setAttribute('font-size',fontsize);
         alabel.setAttribute('text-anchor','start');
         alabel.setAttribute('style','dominant-baseline: alphabetic');
-        alabeltxt = document.createTextNode(yaxlabel);
-        alabel.appendChild(alabeltxt);
+	alabelarr = yaxlabel.split(/ +/);
+	for (i = 0; i < alabelarr.length; i++) {
+	    if (i > 0) {
+		alabeltsp = document.createElementNS("http://www.w3.org/2000/svg",'tspan');
+		alabeltxt = document.createTextNode(' ');
+		alabeltsp.appendChild(alabeltxt);
+		alabel.appendChild(alabeltsp);
+	    }
+	    alabeltsp = document.createElementNS("http://www.w3.org/2000/svg",'tspan');
+	    alabelret = getFormat(alabelarr[i]);
+	    if (alabelret[1]) {
+		alabeltsp.setAttribute('class',alabelret[1]);
+		alabelarr[i] = alabelret[0];
+	    }
+	    alabelret = getFormat(alabelarr[i]);
+	    if (alabelret[1]) {
+		alabeltsp.setAttribute('class',alabeltsp.getAttribute('class') + ' ' + alabelret[1]);
+		alabelarr[i] = alabelret[0];
+	    }
+	    alabeltxt = document.createTextNode(alabelarr[i]);
+	    alabeltsp.appendChild(alabeltxt);
+            alabel.appendChild(alabeltsp);
+	}
         svg.appendChild(alabel);
+    }
+    if (yaxlabel != '') {
     }
     if ((ymin < 0 && ymax > 0) || (xmin < 0 && xmax > 0)) {
         tick = document.createElementNS("http://www.w3.org/2000/svg",'text');
@@ -595,4 +639,18 @@ function px2cm (px) {
 
 function cm2px (cm) {
     return cm * px_per_mm * 10;
+}
+
+function getFormat (s) {
+    var rt,cl,bl;
+    if (s.charAt(0) == s.charAt(s.length - 1)) {
+	if (s.charAt(0) == "_") {
+	    rt = s.substring(1,s.length-1);
+	    return [rt,'italic'];
+	} else if (s.charAt(0) == "*") {
+	    rt = s.substring(1,s.length-1);
+	    return [rt,'bold'];
+	}	    
+    }
+    return [rt,''];
 }
