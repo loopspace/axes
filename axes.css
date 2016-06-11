@@ -31,8 +31,6 @@ body {
 }
 
 .help {
-    position: absolute;
-    width: 33%;
     right: 0px;
     top: 0px;
     border-radius: 5px 0px 5px 5px;
@@ -43,8 +41,10 @@ body {
 }
 
 #help {
+    position: absolute;
     display: none;
     overflow: auto;
+    width: 33%;
 }
 
 .desc {
@@ -107,10 +107,22 @@ div.sliderBg {
     overflow: visible;
 }
 
-tspan.italic {
+tspan.italic, span.italic {
     font-style: italic;
 }
 
-tspan.bold {
+tspan.bold, span.bold {
     font-weight: bold;
+}
+
+#helpsign {
+    position: fixed;
+    font-size: 200%;
+    padding-left: 15px;
+    background: #ddd;
+}
+
+#helpsign a {
+    text-decoration: none;
+    color: black;
 }

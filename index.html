@@ -4,6 +4,7 @@
     <title>
       Make Your Own Axes
     </title>
+    <meta name="Author" content="loopspace">
     <link href="axes.css" rel="stylesheet">
     <script type="text/javascript" src="axes.js"></script>
     <script type="text/javascript" src="parameter.js"></script>
@@ -45,11 +46,9 @@
     </svg>
     <div id="formdiv" class="no-print">
       <div id="expl">
-	<p>
-	  Configure your axes here.
-	  Click <a href="#" id="helplink">help</a> to
-	  unhide/hide the help text.
-	</p>
+	<h3>
+	  Configuration
+	</h3>
       </div>
       <div id="help" class="no-print help">
 	<h3>Help</h3>
@@ -113,6 +112,12 @@
 	      available space.
 	    <li><span class="desc">Grid</span>: If this is checked
 	      then a grid is shown.
+	    <li><span class="desc">Line width</span>: This slider
+	      controls the width of the axes lines.
+	    <li><span class="desc">Mark length</span>: This slider
+	      controls the length of the marker lines.
+	    <li><span class="desc">Mark width</span>: This slider
+	      controls the width of the marker lines.
 	  </ul>
 
 	  <h4>X/Y Axis</h4>
@@ -124,7 +129,17 @@
 	    <li><span class="desc">Marks every</span>: How often to
 	      put marks (counting outwards from 0).
 	    <li><span class="desc">Labels every</span>: How often to
-	      put labels (counting outwards from 0).
+	      put labels, in number of marks.
+	    <li><span class="desc">Axis label</span>: The text to put
+	      at the end of each axis.  Minor formatting is allowed
+	      here:
+	      <ul>
+		<li><code>_word_</code> becomes <span class="italic">word</span>
+		<li><code>*word*</code>
+		  becomes <span class="bold">word</span>
+		<li><code>*_word_*</code> and <code>_*word*_</code>
+		become <span class="italic bold">word</span>
+	      </ul>
 	  </ul>
 	<p>
 	  Lastly, a note on copyright.
@@ -135,6 +150,9 @@
 	  It is
 	  available <a href="https://github.com/loopspace/axes">on github</a>.
 	</p>
+      </div>
+      <div id="helpsign" class="no-print help">
+	<a href="#" id="helplink">?</a>
       </div>
       <form id="axes" class="no-print">
 	<table id="paramtbl">
