@@ -180,7 +180,6 @@ function init() {
     var hdv = document.getElementById('help');
     hlnk.addEventListener('click', function(e) {
 	e.preventDefault();
-	console.log(hdv.style.display);
 	if (hdv.style.display == 'none' || hdv.style.display == '') {
 	    hdv.style.display = 'block';
 	} else {
@@ -493,7 +492,7 @@ function createAxesSvg (
     for ( i=nmin;i<=nmax;i++) {
 	if (i != 0) {
             tick = document.createElementNS("http://www.w3.org/2000/svg",'text');
-            tick.setAttribute('x',transformX(i*xlabel));
+            tick.setAttribute('x',transformX(i*xlabel) + fontsize/4);
             tick.setAttribute('y',transformY(0) + marklength);
 	    tick.setAttribute('font-size',fontsize);
             tick.setAttribute('text-anchor','end');
@@ -555,7 +554,7 @@ function createAxesSvg (
 	if (i != 0) {
             tick = document.createElementNS("http://www.w3.org/2000/svg",'text');
             tick.setAttribute('x',transformX(0) - marklength);
-            tick.setAttribute('y',transformY(i*ylabel) - fontsize/8);
+            tick.setAttribute('y',transformY(i*ylabel) + fontsize/3);
 	    tick.setAttribute('font-size',fontsize);
             tick.setAttribute('text-anchor','end');
             tick.setAttribute('style','dominant-baseline: alphabetic');

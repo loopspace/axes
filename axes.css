@@ -31,6 +31,7 @@ body {
 }
 
 .help {
+    position: fixed;
     right: 0px;
     top: 0px;
     border-radius: 5px 0px 5px 5px;
@@ -41,7 +42,6 @@ body {
 }
 
 #help {
-    position: absolute;
     display: none;
     overflow: auto;
     width: 33%;
@@ -116,7 +116,6 @@ tspan.bold, span.bold {
 }
 
 #helpsign {
-    position: fixed;
     font-size: 200%;
     padding-left: 15px;
     background: #ddd;
