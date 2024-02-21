@@ -163,13 +163,13 @@ function init() {
     parameter.text('Minimum','xmn',-5,createAxes);
     parameter.text('Maximum','xmx',5,createAxes);
     parameter.text('Marks every','xmk',1,createAxes);
-    parameter.integer('Labels every','xlb',1,5,1,createAxes);
+    parameter.integer('Labels every','xlb',1,10,1,createAxes);
     parameter.text('Axis label','xal',"_x_",createAxes);
     parameter.separator('Y Axis');
     parameter.text('Minimum','ymn',-7,createAxes);
     parameter.text('Maximum','ymx',8,createAxes);
     parameter.text('Marks every','ymk',1,createAxes);
-    parameter.integer('Labels every','ylb',1,5,1,createAxes);
+    parameter.integer('Labels every','ylb',1,10,1,createAxes);
     parameter.text('Axis label','yal',"_y_",createAxes);
     createAxes(null,parameter);
     
@@ -405,7 +405,8 @@ function createAxesSvg (
 	ymark,
 	ylabel,
 	xborder,
-	yborder
+	yborder,
+	precision
     ;
 
     xwidth = xmax - xmin;
@@ -444,23 +445,43 @@ function createAxesSvg (
     if (gridbl) {
 	var grid = document.createElementNS("http://www.w3.org/2000/svg",'path');
 	var gridstr = '';
+
+	if (xlabel != 1 || ylabel !=1) {
+	    var overgrid = document.createElementNS("http://www.w3.org/2000/svg",'path');
+	    var overgridstr = '';
+	}
 	
 	nmin = Math.ceil(xmin/xmark);
 	nmax = Math.floor(xmax/xmark);
 	for ( i=nmin;i<=nmax;i++) {
-            gridstr += 'M ' + transformX(i*xmark) + ' ' + transformY(ymin) + ' L ' + transformX(i*xmark) + ' ' +  transformY(ymax) + ' ';
+	    if ( (xlabel == 1) || (i%xlabel !=0)) {
+		gridstr += 'M ' + transformX(i*xmark) + ' ' + transformY(ymin) + ' L ' + transformX(i*xmark) + ' ' +  transformY(ymax) + ' ';
+	    } else {
+		overgridstr += 'M ' + transformX(i*xmark) + ' ' + transformY(ymin) + ' L ' + transformX(i*xmark) + ' ' +  transformY(ymax) + ' ';
+	    }
 	}
 
 	nmin = Math.ceil(ymin/ymark);
 	nmax = Math.floor(ymax/ymark);
 	for ( i=nmin;i<=nmax;i++) {
-            gridstr += 'M ' + transformX(xmin) + ' ' + transformY(i*ymark) + ' L ' + transformX(xmax) + ' ' +  transformY(i*ymark) + ' ';
+	    if ( (ylabel == 1) || (i%ylabel !=0)) {
+		gridstr += 'M ' + transformX(xmin) + ' ' + transformY(i*ymark) + ' L ' + transformX(xmax) + ' ' +  transformY(i*ymark) + ' ';
+	    } else {
+		overgridstr += 'M ' + transformX(xmin) + ' ' + transformY(i*ymark) + ' L ' + transformX(xmax) + ' ' +  transformY(i*ymark) + ' ';
+	    }
 	}
 
 	grid.setAttribute('d',gridstr);
 	grid.setAttribute('stroke','gray');
 	grid.setAttribute('stroke-width',.5*linewidth);
 	svg.appendChild(grid);
+
+	if (xlabel != 1 || ylabel !=1) {
+	    overgrid.setAttribute('d',overgridstr);
+	    overgrid.setAttribute('stroke','gray');
+	    overgrid.setAttribute('stroke-width',linewidth);
+	    svg.appendChild(overgrid);
+	}
     }
     var xaxis = document.createElementNS("http://www.w3.org/2000/svg",'path');
     xaxis.setAttribute('d','M ' + transformX(xmin) + ' ' + transformY(0) + ' L ' + transformX(xmax) + ' ' + transformY(0));
@@ -480,24 +501,25 @@ function createAxesSvg (
     for ( i=nmin;i<=nmax;i++) {
 	if (i != 0) {
 	    notch = document.createElementNS("http://www.w3.org/2000/svg",'path');
-            notch.setAttribute('d','M ' + transformX(i*xmark) + ' ' + transformY(0) + ' l 0 ' + marklength );
+            notch.setAttribute('d','M ' + transformX(i*xmark) + ' ' + transformY(0) + ' l 0 ' + (i % xlabel == 0 ? 1.5 : 1) * marklength );
             notch.setAttribute('stroke','black');
             notch.setAttribute('stroke-width', markwidth);
             svg.appendChild(notch);
 	}
     }
     xlabel *= xmark;
+    precision = Math.min(0,Math.floor(Math.log10(xmark)));
     nmin = Math.ceil(xmin/xlabel);
     nmax = Math.floor(xmax/xlabel);
     for ( i=nmin;i<=nmax;i++) {
 	if (i != 0) {
             tick = document.createElementNS("http://www.w3.org/2000/svg",'text');
             tick.setAttribute('x',transformX(i*xlabel) + fontsize/4);
-            tick.setAttribute('y',transformY(0) + marklength);
+            tick.setAttribute('y',transformY(0) + 2*marklength);
 	    tick.setAttribute('font-size',fontsize);
             tick.setAttribute('text-anchor','end');
             tick.setAttribute('style','dominant-baseline: hanging');
-            tlbl = document.createTextNode(i*xlabel);
+            tlbl = document.createTextNode(Math.round10(i*xlabel,precision));
             tick.appendChild(tlbl);
             svg.appendChild(tick);
 	}
@@ -541,24 +563,25 @@ function createAxesSvg (
     for ( i=nmin;i<=nmax;i++) {
 	if (i != 0) {
 	    notch = document.createElementNS("http://www.w3.org/2000/svg",'path');
-            notch.setAttribute('d','M ' + transformX(0) + ' ' + transformY(i*ymark) + ' l ' +  -marklength + ' 0');
+            notch.setAttribute('d','M ' + transformX(0) + ' ' + transformY(i*ymark) + ' l ' +  - (i % ylabel == 0 ? 1.5 : 1) * marklength + ' 0');
             notch.setAttribute('stroke','black');
             notch.setAttribute('stroke-width', markwidth);
             svg.appendChild(notch);
 	}
     }
     ylabel *= ymark;
+    precision = Math.min(0,Math.floor(Math.log10(ymark)));
     nmin = Math.ceil(ymin/ylabel);
     nmax = Math.floor(ymax/ylabel);
     for ( i=nmin;i<=nmax;i++) {
 	if (i != 0) {
             tick = document.createElementNS("http://www.w3.org/2000/svg",'text');
-            tick.setAttribute('x',transformX(0) - marklength);
+            tick.setAttribute('x',transformX(0) - 2*marklength);
             tick.setAttribute('y',transformY(i*ylabel) + fontsize/3);
 	    tick.setAttribute('font-size',fontsize);
             tick.setAttribute('text-anchor','end');
             tick.setAttribute('style','dominant-baseline: alphabetic');
-            tlbl = document.createTextNode(i*ylabel);
+            tlbl = document.createTextNode(Math.round10(i*ylabel,precision));
             tick.appendChild(tlbl);
             svg.appendChild(tick);
 	}
@@ -653,3 +676,80 @@ function getFormat (s) {
     }
     return [rt,''];
 }
+
+/*
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/round
+*/
+
+// Closure
+(function() {
+  /**
+   * Decimal adjustment of a number.
+   *
+   * @param {String}  type  The type of adjustment.
+   * @param {Number}  value The number.
+   * @param {Integer} exp   The exponent (the 10 logarithm of the adjustment base).
+   * @returns {Number} The adjusted value.
+   */
+  function decimalAdjust(type, value, exp) {
+    // If the exp is undefined or zero...
+    if (typeof exp === 'undefined' || +exp === 0) {
+      return Math[type](value);
+    }
+    value = +value;
+    exp = +exp;
+    // If the value is not a number or the exp is not an integer...
+    if (value === null || isNaN(value) || !(typeof exp === 'number' && exp % 1 === 0)) {
+      return NaN;
+    }
+    // If the value is negative...
+    if (value < 0) {
+      return -decimalAdjust(type, -value, exp);
+    }
+    // Shift
+    value = value.toString().split('e');
+    value = Math[type](+(value[0] + 'e' + (value[1] ? (+value[1] - exp) : -exp)));
+    // Shift back
+    value = value.toString().split('e');
+    return +(value[0] + 'e' + (value[1] ? (+value[1] + exp) : exp));
+  }
+
+  // Decimal round
+  if (!Math.round10) {
+    Math.round10 = function(value, exp) {
+      return decimalAdjust('round', value, exp);
+    };
+  }
+  // Decimal floor
+  if (!Math.floor10) {
+    Math.floor10 = function(value, exp) {
+      return decimalAdjust('floor', value, exp);
+    };
+  }
+  // Decimal ceil
+  if (!Math.ceil10) {
+    Math.ceil10 = function(value, exp) {
+      return decimalAdjust('ceil', value, exp);
+    };
+  }
+
+    // Significant figures round
+  if (!Math.roundsf) {
+    Math.roundsf = function(value, exp) {
+      return decimalAdjust('round', value, Math.floor(Math.log10(Math.abs(value))) + 1 - exp);
+    };
+  }
+  //  Significant figures floor
+  if (!Math.floorsf) {
+      Math.floorsf = function(value, exp) {
+	return decimalAdjust('floor', value, Math.floor(Math.log10(Math.abs(value))) + 1 - exp);
+    };
+  }
+  //  Significant figures ceil
+  if (!Math.ceilsf) {
+    Math.ceilsf = function(value, exp) {
+      return decimalAdjust('ceil', value, Math.floor(Math.log10(Math.abs(value))) + 1 - exp);
+    };
+  }
+})();
+
