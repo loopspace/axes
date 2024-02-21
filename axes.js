@@ -406,13 +406,18 @@ function createAxesSvg (
 	ylabel,
 	xborder,
 	yborder,
-	precision
+	precision,
+	xzero,
+	yzero
     ;
 
     xwidth = xmax - xmin;
     ywidth = ymax - ymin;
     xborder = border;
     yborder = border;
+    xzero = Math.min(xmax,Math.max(0,xmin));
+    yzero = Math.min(ymax,Math.max(0,ymin));
+    
     if (aspect) {
 	xscale = Math.min((width - 2*xborder)/xwidth,(height - 2*yborder)/ywidth);
 	yscale = xscale;
@@ -441,7 +446,7 @@ function createAxesSvg (
     svg.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
     svg.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", "http://www.w3.org/2000/svg");
 
-    var nmin,nmax,notch,i;
+    var nmin,nmax,nzero,notch,i;
     if (gridbl) {
 	var grid = document.createElementNS("http://www.w3.org/2000/svg",'path');
 	var gridstr = '';
@@ -453,8 +458,9 @@ function createAxesSvg (
 	
 	nmin = Math.ceil(xmin/xmark);
 	nmax = Math.floor(xmax/xmark);
+	nzero = Math.min(nmax,Math.max(0,nmin));
 	for ( i=nmin;i<=nmax;i++) {
-	    if ( (xlabel == 1) || (i%xlabel !=0)) {
+	    if ( (xlabel == 1) || (i%xlabel != 0)) {
 		gridstr += 'M ' + transformX(i*xmark) + ' ' + transformY(ymin) + ' L ' + transformX(i*xmark) + ' ' +  transformY(ymax) + ' ';
 	    } else {
 		overgridstr += 'M ' + transformX(i*xmark) + ' ' + transformY(ymin) + ' L ' + transformX(i*xmark) + ' ' +  transformY(ymax) + ' ';
@@ -463,6 +469,7 @@ function createAxesSvg (
 
 	nmin = Math.ceil(ymin/ymark);
 	nmax = Math.floor(ymax/ymark);
+	nzero = Math.min(nmax,Math.max(0,nmin));
 	for ( i=nmin;i<=nmax;i++) {
 	    if ( (ylabel == 1) || (i%ylabel !=0)) {
 		gridstr += 'M ' + transformX(xmin) + ' ' + transformY(i*ymark) + ' L ' + transformX(xmax) + ' ' +  transformY(i*ymark) + ' ';
@@ -484,13 +491,13 @@ function createAxesSvg (
 	}
     }
     var xaxis = document.createElementNS("http://www.w3.org/2000/svg",'path');
-    xaxis.setAttribute('d','M ' + transformX(xmin) + ' ' + transformY(0) + ' L ' + transformX(xmax) + ' ' + transformY(0));
+    xaxis.setAttribute('d','M ' + transformX(xmin) + ' ' + transformY(yzero) + ' L ' + transformX(xmax) + ' ' + transformY(yzero));
     xaxis.setAttribute('stroke','black');
     xaxis.setAttribute('stroke-width',linewidth);
     xaxis.setAttribute('marker-end','url(#dart)');
     svg.appendChild(xaxis);
     var yaxis = document.createElementNS("http://www.w3.org/2000/svg",'path');
-    yaxis.setAttribute('d','M ' + transformX(0) + ' ' + transformY(ymin) + ' L ' + transformX(0) + ' ' + transformY(ymax));
+    yaxis.setAttribute('d','M ' + transformX(xzero) + ' ' + transformY(ymin) + ' L ' + transformX(xzero) + ' ' + transformY(ymax));
     yaxis.setAttribute('stroke','black');
     yaxis.setAttribute('stroke-width',linewidth);
     yaxis.setAttribute('marker-end','url(#dart)');
@@ -498,10 +505,11 @@ function createAxesSvg (
     var tick,tlbl;
     nmin = Math.ceil(xmin/xmark);
     nmax = Math.floor(xmax/xmark);
+    nzero = Math.min(nmax,Math.max(0,nmin));
     for ( i=nmin;i<=nmax;i++) {
-	if (i != 0) {
+	if (i != nzero) {
 	    notch = document.createElementNS("http://www.w3.org/2000/svg",'path');
-            notch.setAttribute('d','M ' + transformX(i*xmark) + ' ' + transformY(0) + ' l 0 ' + (i % xlabel == 0 ? 1.5 : 1) * marklength );
+            notch.setAttribute('d','M ' + transformX(i*xmark) + ' ' + transformY(yzero) + ' l 0 ' + (i % xlabel == 0 ? 1.5 : 1) * marklength );
             notch.setAttribute('stroke','black');
             notch.setAttribute('stroke-width', markwidth);
             svg.appendChild(notch);
@@ -511,11 +519,13 @@ function createAxesSvg (
     precision = Math.min(0,Math.floor(Math.log10(xmark)));
     nmin = Math.ceil(xmin/xlabel);
     nmax = Math.floor(xmax/xlabel);
+    nzero = Math.min(nmax,Math.max(0,nmin));
+    
     for ( i=nmin;i<=nmax;i++) {
-	if (i != 0) {
+	if (i != nzero) {
             tick = document.createElementNS("http://www.w3.org/2000/svg",'text');
             tick.setAttribute('x',transformX(i*xlabel) + fontsize/4);
-            tick.setAttribute('y',transformY(0) + 2*marklength);
+            tick.setAttribute('y',transformY(yzero) + 2*marklength);
 	    tick.setAttribute('font-size',fontsize);
             tick.setAttribute('text-anchor','end');
             tick.setAttribute('style','dominant-baseline: hanging');
@@ -529,7 +539,7 @@ function createAxesSvg (
     if (xaxlabel != '') {
 	alabel = document.createElementNS("http://www.w3.org/2000/svg",'text');
         alabel.setAttribute('x',transformX(xmax) + 15*linewidth);
-        alabel.setAttribute('y',transformY(0));
+        alabel.setAttribute('y',transformY(yzero));
 	alabel.setAttribute('font-size',fontsize);
         alabel.setAttribute('text-anchor','start');
         alabel.setAttribute('style','dominant-baseline: hanging');
@@ -560,10 +570,12 @@ function createAxesSvg (
     }
     nmin = Math.ceil(ymin/ymark);
     nmax = Math.floor(ymax/ymark);
+    nzero = Math.min(nmax,Math.max(0,nmin));
+
     for ( i=nmin;i<=nmax;i++) {
-	if (i != 0) {
+	if (i != nzero) {
 	    notch = document.createElementNS("http://www.w3.org/2000/svg",'path');
-            notch.setAttribute('d','M ' + transformX(0) + ' ' + transformY(i*ymark) + ' l ' +  - (i % ylabel == 0 ? 1.5 : 1) * marklength + ' 0');
+            notch.setAttribute('d','M ' + transformX(xzero) + ' ' + transformY(i*ymark) + ' l ' +  - (i % ylabel == 0 ? 1.5 : 1) * marklength + ' 0');
             notch.setAttribute('stroke','black');
             notch.setAttribute('stroke-width', markwidth);
             svg.appendChild(notch);
@@ -573,10 +585,11 @@ function createAxesSvg (
     precision = Math.min(0,Math.floor(Math.log10(ymark)));
     nmin = Math.ceil(ymin/ylabel);
     nmax = Math.floor(ymax/ylabel);
+    nzero = Math.min(nmax,Math.max(0,nmin));
     for ( i=nmin;i<=nmax;i++) {
-	if (i != 0) {
+	if (i != nzero) {
             tick = document.createElementNS("http://www.w3.org/2000/svg",'text');
-            tick.setAttribute('x',transformX(0) - 2*marklength);
+            tick.setAttribute('x',transformX(xzero) - 2*marklength);
             tick.setAttribute('y',transformY(i*ylabel) + fontsize/3);
 	    tick.setAttribute('font-size',fontsize);
             tick.setAttribute('text-anchor','end');
@@ -588,7 +601,7 @@ function createAxesSvg (
     }
     if (yaxlabel != '') {
 	alabel = document.createElementNS("http://www.w3.org/2000/svg",'text');
-        alabel.setAttribute('x',transformX(0));
+        alabel.setAttribute('x',transformX(xzero));
         alabel.setAttribute('y',transformY(ymax) - 15*linewidth);
 	alabel.setAttribute('font-size',fontsize);
         alabel.setAttribute('text-anchor','start');
@@ -622,8 +635,8 @@ function createAxesSvg (
     }
     if ((ymin < 0 && ymax > 0) || (xmin < 0 && xmax > 0)) {
         tick = document.createElementNS("http://www.w3.org/2000/svg",'text');
-        tick.setAttribute('x',transformX(-.15));
-        tick.setAttribute('y',transformY(-.15));
+        tick.setAttribute('x',transformX(xzero-.15));
+        tick.setAttribute('y',transformY(yzero-.15));
 	tick.setAttribute('font-size',fontsize);
         tick.setAttribute('text-anchor','end');
         tick.setAttribute('style','dominant-baseline: hanging');
