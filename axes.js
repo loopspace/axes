@@ -1,10 +1,10 @@
 "use strict";
 
 var px_per_mm;
-var svgs = [];
-var axParams = [];
-var caxes = 0;
-var defaults = {
+const svgs = [];
+const axParams = [ ];
+const caxes = 0;
+const defaults = {
     "fs": 16,
     "asp": true,
     "gd": true,
@@ -22,11 +22,11 @@ var defaults = {
     "ylb": 1,
     "yal": "_y_",
 };
-var paramNames = [
+const paramNames = [
     "fs","asp","gd","lw","mw","ml","xmn","xmx","xmk","xlb","xal","ymn","ymx","ymk","ylb","yal"
 ]
 
-var pages = {
+const pages = {
     "A0": [841,1189],
     "A1": [594,841],
     "A2": [420,594],
@@ -68,7 +68,7 @@ var pages = {
     "C10": [40,28]
 }
 
-var pageNames = [
+const pageNames = [
     "A0",
     "A1",
     "A2",
@@ -110,35 +110,82 @@ var pageNames = [
     "C10"
 ]
 
+// Parse query string
+const qs = (function(a) {
+    if (a == "") return {};
+    const b = {};
+    let ca = 0;
+    let paramName, paramValue;
+    for (let i = 0; i < a.length; ++i)
+    {
+        let p=a[i].split('=', 2);
+	paramName = p[0];
+        if (p.length == 1) {
+	    paramValue = "";
+        } else {
+            paramValue = decodeURIComponent(p[1].replace(/\+/g, " "));
+	}
+	if (paramName == "ca") {
+	    if (paramValue != "") {
+		try {
+		    ca = parseInt(paramValue);
+		} catch(e) {}
+	    }
+	    while (ca >= axParams.length) {
+		axParams.push([]);
+	    }
+	} else if (paramNames.includes(paramName)) {
+	    axParams[ca][paramName] = paramValue;
+	} else {
+	    b[paramName] = paramValue;
+	}
+    }
+    b.ca = ca;
+    return b;
+})(window.location.search.substr(1).split('&'));
+
+
+
 function init() {
-    var parameter;
-    
     make_px2cm();
-    parameter = new Parameter('paramtbl');
+    const parameter = new Parameter('paramtbl');
     parameter.separator('Page Setup');
-    parameter.select('Page Size','ps',pageNames,'A4',createAxes);
-    parameter.text('Page Margins (px)','pm',0,createAxes);
-    parameter.text('Borders (cm)','bd',1,createAxes);
-    parameter.select('Page Orientation','or',["Portrait","Landscape"],'Portrait',createAxes);
-    parameter.select('N-Up','np',[1,2,4,6,8],1,
+    parameter.select('Page Size','ps',pageNames,qs.ps || 'A4',createAxes);
+    parameter.text('Page Margins (px)','pm',qs.pm || 0 ,createAxes);
+    parameter.text('Borders (cm)','bd',qs.bd || 1,createAxes);
+    parameter.select('Page Orientation','or',["Portrait","Landscape"],qs.or || 'Portrait',createAxes);
+    parameter.select('N-Up','np',[1,2,4,6,8],qs.np || 1,
 		     function(e,p) {
-			 var a = [];
-			 for (var i = 0; i < e.target.value; i++) {
+			 let a = [];
+			 for (let i = 0; i < e.target.value; i++) {
 			     a.push(i);
 			 }
+			 svgs.length = 0;
 			 parameter.enableOptions('na',a,false);
 			 return createAxes(e,p);
 		     });
-    parameter.integer('Number of Axes','na',1,8,1,
+    let na, ca;
+    if ('na' in qs) {na = parseInt(qs.na)} else {na = 1};
+    if ('ca' in qs) {ca = qs.ca} else {ca = 0};
+    na = Math.max(na,ca);
+    
+    parameter.integer('Number of Axes','na',1,8,na,
 		      function(e,p) {
-			  var a = [];
-			  for (var i = 0; i < e.target.value; i++) {
+			  let a = [];
+			 let ca = parameter.getParameter('ca');
+			  for (let i = 0; i < e.target.value; i++) {
 			      a.push(i);
+			     if (! i in axParams) {
+				 axParams[i] = [];
+				 for (let n in nameParams) {
+				     axParams[i][n] = axParams[ca][n];
+				 }
+			     }
 			  }
 			  parameter.enableOptions('ca',a,false);
 			  return createAxes(e,p);
 		      });
-    parameter.integer('Current Axes','ca',1,8,1,function(e,p) {
+    parameter.integer('Current Axes','ca',1,8,ca+1,function(e,p) {
 	var opts;
 	var ca = e.target.value - 1;
 	if (axParams[ca]) {
@@ -150,27 +197,43 @@ function init() {
 	    p.setParameter(paramNames[i],opts[paramNames[i]]);
 	}
     });
-    parameter.enableOptions('na',[0],false);
-    parameter.enableOptions('ca',[0],false);
+    let nax = [];
+    let cax = [];
+    for (let i = 0; i < qs.np; i++) {
+	nax.push(i);
+    }
+    for (let i = 0; i < na; i++) {
+	cax.push(i);
+    }
+    
+    let opts = {};
+    if (ca in axParams) {
+	paramNames.forEach(function (name) { if (name in axParams[ca]) { opts[name] = axParams[ca][name] } else { opts[name] = defaults[name] }});
+    } else {
+	paramNames.forEach((name) => opts[name] = defaults[name] );
+    }
+
+    parameter.enableOptions('na',nax,false);
+    parameter.enableOptions('ca',cax,false);
     parameter.separator('Axes Setup');
-    parameter.integer('Font Size','fs',6,24,16,createAxes);
-    parameter.boolean('Preserve aspect ratio','asp',true,createAxes);
-    parameter.boolean('Grid','gd',true,createAxes);
-    parameter.number('Line Width','lw',0,5,1,createAxes);
-    parameter.number('Mark Length','ml',0,20,10,createAxes);
-    parameter.number('Mark Width','mw',0,5,1,createAxes);
+    parameter.integer('Font Size','fs',6,24,opts.fs,createAxes);
+    parameter.boolean('Preserve aspect ratio','asp',opts.asp,createAxes);
+    parameter.boolean('Grid','gd',opts.gd,createAxes);
+    parameter.number('Line Width','lw',0,5,opts.lw,createAxes);
+    parameter.number('Mark Length','ml',0,20,opts.ml,createAxes);
+    parameter.number('Mark Width','mw',0,5,opts.mw,createAxes);
     parameter.separator('X Axis');
-    parameter.text('Minimum','xmn',-5,createAxes);
-    parameter.text('Maximum','xmx',5,createAxes);
-    parameter.text('Marks every','xmk',1,createAxes);
-    parameter.integer('Labels every','xlb',1,10,1,createAxes);
-    parameter.text('Axis label','xal',"_x_",createAxes);
+    parameter.text('Minimum','xmn',opts.xmn,createAxes);
+    parameter.text('Maximum','xmx',opts.xmx,createAxes);
+    parameter.text('Marks every','xmk',opts.xmk,createAxes);
+    parameter.integer('Labels every','xlb',1,10,opts.xlb,createAxes);
+    parameter.text('Axis label','xal',opts.xal,createAxes);
     parameter.separator('Y Axis');
-    parameter.text('Minimum','ymn',-7,createAxes);
-    parameter.text('Maximum','ymx',8,createAxes);
-    parameter.text('Marks every','ymk',1,createAxes);
-    parameter.integer('Labels every','ylb',1,10,1,createAxes);
-    parameter.text('Axis label','yal',"_y_",createAxes);
+    parameter.text('Minimum','ymn',opts.ymn,createAxes);
+    parameter.text('Maximum','ymx',opts.ymx,createAxes);
+    parameter.text('Marks every','ymk',opts.ymk,createAxes);
+    parameter.integer('Labels every','ylb',1,10,opts.ylb,createAxes);
+    parameter.text('Axis label','yal',opts.yal,createAxes);
     createAxes(null,parameter);
     
     var w = document.getElementById('paramtbl').offsetWidth;
@@ -194,7 +257,7 @@ function init() {
 window.addEventListener('load',init,false);
 
 function createAxes(e,p) {
-    var page,
+    let page,
 	margins,
 	naxes,
 	caxes,
@@ -262,7 +325,7 @@ function createAxes(e,p) {
 	    nrow = 2;
 	} else {
 	    height /= 2;
-	    width /= 3;p
+	    width /= 3;
 	    nrow = 3;
 	}
     } else if (nup == 8) {
@@ -334,7 +397,7 @@ function createAxes(e,p) {
 	"ylb": ylabel,
 	"yal": yaxlabel
     }
-    var nsvg,br,tbl,tr,td;
+    let nsvg,br,tbl,tr,td;
     tbl = document.createElement('table');
     tbl.className = 'axesTable';
     for (var i=0; i < naxes; i++) {
@@ -373,6 +436,24 @@ function createAxes(e,p) {
 	tr.appendChild(td);
     }
     out.appendChild(tbl);
+    let query_string =
+	[location.protocol, '//', location.host, location.pathname].join('');
+    query_string += `?ps=${page}&np=${nup}&or=${orient}&pm=${margins}&na=${naxes}`;
+    let qs;
+    for (let i = 0; i < naxes; i++) {
+	qs = `&ca=${i}`;
+	for (let j = 0; j < paramNames.length; j++) {
+	    qs += `&${paramNames[j]}=${encodeURIComponent(axParams[i][paramNames[j]])}`;
+	}
+	query_string += qs;
+    }
+    query_string += `&ca=${caxes}`;
+    const sharebtn = document.getElementById("share");
+    sharebtn.addEventListener("click", function(e) {
+	e.preventDefault();
+	console.log(query_string);
+	copyToClipboard(query_string);
+    });
 }
 
 function createAxesSvg (
@@ -766,3 +847,43 @@ https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects
   }
 })();
 
+
+// From http://stackoverflow.com/a/22581382
+
+function copyToClipboard(text) {
+    // create hidden text element, if it doesn't already exist
+    const targetId = "_hiddenCopyText_";
+    let origSelectionStart, origSelectionEnd, target;
+    // must use a temporary form element for the selection and copy
+    target = document.getElementById(targetId);
+    if (!target) {
+        target = document.createElement("textarea");
+        target.style.position = "absolute";
+        target.style.left = "-9999px";
+        target.style.top = "0";
+        target.id = targetId;
+        document.body.appendChild(target);
+    }
+    target.textContent = text;
+    // select the content
+    const currentFocus = document.activeElement;
+    target.focus();
+    target.setSelectionRange(0, target.value.length);
+    
+    // copy the selection
+    let succeed;
+    try {
+    	  succeed = document.execCommand("copy");
+    } catch(e) {
+        succeed = false;
+    }
+    // restore original focus
+    if (currentFocus && typeof currentFocus.focus === "function") {
+        currentFocus.focus();
+    }
+    
+    // clear temporary content
+    target.textContent = "";
+
+    return succeed;
+}
